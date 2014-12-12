@@ -11,6 +11,7 @@ import sys,copy
 from heapq import heappush, heappop
 from MGraph import Graph
 import file_reader
+from Prim import prim
 
 minTour = sys.maxsize
 
@@ -24,6 +25,7 @@ class Node:
 		self.path = []
 		self.S = []
 
+	#verifica se o bound de um nó é superior a outro nó
 	def __lt__(self, other):
 		return self.bound < other.bound
 
@@ -76,7 +78,8 @@ class TspBB:
 									break
 						#o else indica que é um tour parcial, então deve ser calculado o lower bound
 						else:
-							newNode.bound = self.lowerBoundQRota(nextVertex, len(temp.S) - 1, temp.lastVertex, temp.S)
+							#newNode.bound = self.lowerBound((nextVertex, len(temp.S) - 1, temp.lastVertex, temp.S), "Q-ROTA")
+							newNode.bound = self.lowerBound(newNode, "ARVORE")
 							if newNode.bound < self.minTour:
 								heappush(self.heap, newNode)
 
@@ -95,8 +98,44 @@ class TspBB:
 			return self.graph.distances[(v,w)]
 		for node in S:
 			menor = min(menor, graph.distances[(node, w)]  + self.lowerBoundQRota(node, k-1, v, S))
+
 		return menor + graph.distances[(w, 0)]
 
+	def lowerBoundArvore(self, node):
+		#busca a árvore geradora mínima
+		graphTemp = copy.deepcopy(self.graph)
+		sizePath = len(node.path)
+		
+		"""
+		for i in node.path:
+			#if (i != node.lastVertex):
+			del graphTemp.edges[i] #remove as arestas 
+			graphTemp.nodes.remove(i) #remove o nó
+		"""
+
+		#pega o primeiro nó do grafo temporário
+		for initial in graphTemp.nodes:
+			if(initial in node.path):
+				continue
+			else:
+				break
+
+		pred, value = prim(graphTemp, initial, node.path)
+
+		#busca a menor aresta de path que chega a S
+		menor = sys.maxsize
+		for nodePath in node.path:
+			for nodeS in graphTemp.nodes:
+				if self.graph.distances[(nodePath, nodeS)] < menor:
+					menor = self.graph.distances[(nodePath, nodeS)]
+
+		return value + menor
+
+	def lowerBound(self, params, typeFunction="Q-ROTA"):
+		if(typeFunction ==  "Q-ROTA"):
+			return self.lowerBoundQRota(params[0], params[1], params[2], params[3])
+		elif(typeFunction == "ARVORE"):
+			return self.lowerBoundArvore(params)
 
 def createGraph(id):
         graph = Graph()
@@ -140,9 +179,11 @@ if __name__ == "__main__":
 	root.path.append(0)
 	root.S = copy.deepcopy(graph.nodes)
 	root.S.remove(0)
-	root.bound = tspBB.lowerBoundQRota(0, len(root.S)-1, 0, root.S)
+	#root.bound = tspBB.lowerBound((0, len(root.S)-1, 0, root.S), "Q-ROTA")
+	root.bound = tspBB.lowerBound(root, "ARVORE")
 
 	heappush(tspBB.heap, root)
 	tspBB.tsp()
 
 	print (tspBB.minTour) #resultado final
+	print (tspBB.bestTour)
