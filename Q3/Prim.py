@@ -16,21 +16,23 @@ def prim(graph, initial, currentPath):
 	pred = {}
 	visited = []
 	distance = {}
+	mapNodesHeap = {}
 
 	for i in graph.nodes:
-		color[i] = BRANCO
-		pred[i] = None
-		distance[i] = sys.maxsize
+		if(i not in currentPath):
+			color[i] = BRANCO
+			pred[i] = None
+			distance[i] = sys.maxsize
 
 	distance[initial] = 0
 	pred[initial] = initial
 
+	print (pred)
 	fila = FibonacciHeap()
-	fila.insert(initial,0)
+	mapNodesHeap[initial] = fila.insert(initial,0)
 
 	while fila.is_empty() == False:
 		v = fila.extract_minimum()
-		print (v.key, v.value)
 		visited.append(v.key)
 
 		"""
@@ -45,12 +47,11 @@ def prim(graph, initial, currentPath):
 				
 				if(color[node] == BRANCO):
 					#insere normalmente na heap
-					fila.insert(node, graph.distances[(v.key, node)])
+					mapNodesHeap[node] = fila.insert(node, graph.distances[(v.key, node)])
 					color[node] = CINZA
 				elif(color[node] == CINZA):
 					#diminui o valor no heap
-					temp = Node(node, distance[node])
-					fila.decrease_key(temp, graph.distances[(v.key, node)])
+					fila.decrease_key(mapNodesHeap[node], graph.distances[(v.key, node)])
 				
 				distance[node] = graph.distances[(v.key, node)]
 				
