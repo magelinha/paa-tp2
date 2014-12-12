@@ -22,7 +22,7 @@ class Node:
 		self.path = []
 		self.S = []
 
-class tpsBB:
+class TspBB:
 	def __init__(self, graph):
 		self.graph = graph #grafo a ser usado
 		self.infity = sys.maxint #simulação de um valor infinito
@@ -70,7 +70,7 @@ class tpsBB:
 									break
 						#o else indica que é um tour parcial, então deve ser calculado o lower bound
 						else:
-							newNode.bound = self.lowerBoundQRota(nextVertex, len(temp.S) - 1, temp.lastVertex, temp.S)
+							newNode.bound = self.lowerBoundQRota(nextVertex, len(temp.S) - 1, temp.lastVertex, temp.S, self.graph)
 							if newNode.bound < self.minTour:
 								heappush(self.heap, newNode)
 
@@ -81,18 +81,30 @@ class tpsBB:
 		S = conjunto
 		v = ultimo elemento da permutação parcial
 	"""
-	def lowerBoundQRota(w, k, v ,S):
+	def lowerBoundQRota(w, k, v ,S, graph):
 		resultados = []
 		menor = sys.maxint
 
 		if k == 0:
 			return graph.distance[(v,w)]
 		for node in S:
-			menor = min(menor, graph.distance[(node, w)]  + lowerBound(node, k-1, v, S))
-		return menor
+			menor = min(menor, graph.distance[(node, w)]  + lowerBoundQRota(node, k-1, v, S))
+		return menor + graph.distance[(w, 0)]
 
 if __name__ == "__main__":
 
 	"""
 	Aqui deve ser criado o grafo a ser passado para o tsp
 	"""
+
+	tspBB = new TspBB(graph)
+	root = Node(0) #o vértice inicial sempre será o 0
+	root.path.append(0)
+	root.S = copy.deepcopy(graph.nodes)
+	root.S.remove(0)
+	root.bound = tspBB.lowerBoundQRota(0, len(root.S)-1, 0, root.S, tspBB.graph)
+
+	heappush(tspBB.heap, root)
+	tspBB.tsp()
+
+	print tspBB.minTour #resultado final
