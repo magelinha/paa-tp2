@@ -33,4 +33,10 @@ class Graph:
 		
 		self.sumSizeEdges = self.sumSizeEdges + distance
 		self.sumEdges = self.sumEdges + 1
+
+	#remove o nó e as arestas
+	def remove_node(self, node):
+		self.nodes.remove(node)
+		self.edges[node] = []
+
  #fim da classe para operações com grafos.

@@ -37,6 +37,7 @@ class TspBB:
 		self.heap = [] #simula um heap binário
 		self.minTour = sys.maxsize
 		self.bestTour = []
+		self.enumTreeSize = 0
 
 	def tsp(self):
 		while self.heap:
@@ -71,6 +72,8 @@ class TspBB:
 									newNode.path.append(newNode.path[0])
 									newNode.length = newNode.length + self.graph.distances[(node, newNode.path[0])]
 
+									self.enumTreeSize += 1
+
 									if newNode.length < self.minTour:
 										self.minTour = newNode.length
 										self.bestTour = copy.deepcopy(newNode.path)
@@ -79,10 +82,10 @@ class TspBB:
 						#o else indica que é um tour parcial, então deve ser calculado o lower bound
 						else:
 							#newNode.bound = self.lowerBound((nextVertex, len(temp.S) - 1, temp.lastVertex, temp.S), "Q-ROTA")
-							newNode.bound = self.lowerBound(newNode, "ARVORE")
+							#newNode.bound = self.lowerBound(newNode, "ARVORE")
+							newNode.bound = self.lowerBound((newNode, 100, 0.9, 3), "HELDKARP")
 							if newNode.bound < self.minTour:
 								heappush(self.heap, newNode)
-
 
 	"""
 		w = vértice final
@@ -131,11 +134,95 @@ class TspBB:
 
 		return value + menor
 
+	def lowerBoundHeldKarp(self, node, maxIters, alfa, passoInicial):
+		maxValue = 0
+		pi = {}
+		degree = {}
+		gradient = {}
+		pi[node.path[-1]] = 0
+		degree[node.path[-1]] = 2 #o grau do nó inicial da 1-tree será sempre 2
+		gradient[node.path[-1]] = 0
+
+		passo = passoInicial
+		
+		#inicialização de pi, degree e gradiente
+		for i in node.S:
+			pi[i] = 0
+			degree[i] = 0
+			gradient[i] = 0
+
+		graphTemp = copy.deepcopy(self.graph)
+		for i in range(maxIters):
+			#procura pela melhor 1-tree
+			pred, valueTemp, i, j = self.getOneTree(graphTemp, node.path[-1])
+			if(valueTemp > maxValue):
+				maxValue = valueTemp
+
+			#percorre o pred para saber qual é o grau de cada nó para calcular o subgradiente
+			for predNode in pred:
+				degree[predNode] += 1
+				degree[pred[predNode]] += 1
+
+			passo = round(alfa * passo) #gera um novo passo
+
+			for j in node.S:
+				gradient[j] = 2 - degree[j] #calcula o subgrandiente
+				pi[j] -= passo*gradient[j] #cria um novo conjunto pi penalizando nós com graus maiores que 2
+
+			#gera um novo grafo com os valores pi
+			for j in node.S:
+				for edge in graphTemp.edges[j]:
+					if j != edge
+						graphTemp.distances[(j, edge)] += pi[j]
+
+		return maxValue #maxValue é o lowerbound
+
+
+	def getOneTree(self, subgraph, start):
+		#seleciona as duas menores aresta que chegam em start
+		firstEdge = sys.maxsize
+		secondEdge = sys.maxsize
+		
+		#i e j representam o nós a quem start foi ligado
+		i = -1
+		j = -1
+
+		for edge in subgraph.edges[start]:
+			if edge == start:
+				continue
+
+			if subgraph.distances[(start, edge)] < firstEdge:
+				secondEdge = firstEdge
+				j = i
+
+				firstEdge = subgraph.distances[(start, edge)]
+				i = edge
+			elif subgraph.distances[(start, edge)] < secondEdge:
+				secondEdge = subgraph.distances[(start, edge)]
+				j = edge
+
+		#gera o MST 
+		#pega o primeiro nó do grafo temporário
+		for initial in subgraph.nodes:
+			if(initial in node.path):
+				continue
+			else:
+				break
+
+		pred, value = prim(subgraph, initial, node.path)
+		
+		#retorna o valor final
+		return pred, (value + firstEdge + secondEdge), i, j
+
+
 	def lowerBound(self, params, typeFunction="Q-ROTA"):
 		if(typeFunction ==  "Q-ROTA"):
 			return self.lowerBoundQRota(params[0], params[1], params[2], params[3])
 		elif(typeFunction == "ARVORE"):
 			return self.lowerBoundArvore(params)
+		else:
+			return self.lowerBoundHeldKarp(params[0], params[1], params[2], params[3])
+
 
 def createGraph(id):
         graph = Graph()
@@ -180,10 +267,13 @@ if __name__ == "__main__":
 	root.S = copy.deepcopy(graph.nodes)
 	root.S.remove(0)
 	#root.bound = tspBB.lowerBound((0, len(root.S)-1, 0, root.S), "Q-ROTA")
-	root.bound = tspBB.lowerBound(root, "ARVORE")
+	#root.bound = tspBB.lowerBound(root, "ARVORE")
+	root.bound = tspBB.lowerBound((root, 100, 0.9, 3), "HELDKARP")
 
 	heappush(tspBB.heap, root)
 	tspBB.tsp()
 
-	print (tspBB.minTour) #resultado final
+	#resultado final
+	print (tspBB.minTour) 
 	print (tspBB.bestTour)
+	print (tspBB.enumTreeSize)
